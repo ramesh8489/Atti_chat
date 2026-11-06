@@ -1,0 +1,183 @@
+import { Conversation, Message } from '../types';
+
+/**
+ * Preview Fixtures for Phase 1 UI Testing
+ * Clearly labeled with isPreview: true to distinguish from real server data.
+ */
+
+export const PREVIEW_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-preview-1',
+    type: 'DIRECT',
+    title: 'Alex Morgan [PREVIEW]',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80',
+    isOnline: true,
+    unreadCount: 2,
+    updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    isPreview: true,
+    lastMessage: {
+      id: 'msg-prev-1',
+      content: 'Are you ready for the PingUp architecture walkthrough?',
+      createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      senderName: 'Alex Morgan',
+      type: 'TEXT',
+      status: 'DELIVERED',
+    },
+    participants: [
+      {
+        id: 'user-alex',
+        displayName: 'Alex Morgan [PREVIEW]',
+        username: 'alex_m',
+        phoneNumber: '+15551234567',
+        isOnline: true,
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80',
+      },
+    ],
+  },
+  {
+    id: 'conv-preview-2',
+    type: 'GROUP',
+    title: 'PingUp Core Engineering 🚀 [PREVIEW]',
+    avatarUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=128&auto=format&fit=crop&q=80',
+    isOnline: true,
+    unreadCount: 0,
+    updatedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    isPreview: true,
+    lastMessage: {
+      id: 'msg-prev-2',
+      content: 'Database migration and schema checks are looking solid.',
+      createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      senderName: 'Dev Lead',
+      type: 'TEXT',
+      status: 'READ',
+    },
+    participants: [
+      {
+        id: 'user-sarah',
+        displayName: 'Sarah Chen [PREVIEW]',
+        username: 'sarah_c',
+        phoneNumber: '+15559876543',
+        isOnline: true,
+        role: 'ADMIN',
+      },
+      {
+        id: 'user-alex',
+        displayName: 'Alex Morgan [PREVIEW]',
+        username: 'alex_m',
+        phoneNumber: '+15551234567',
+        isOnline: true,
+        role: 'MEMBER',
+      },
+    ],
+  },
+  {
+    id: 'conv-preview-3',
+    type: 'DIRECT',
+    title: 'David Miller [PREVIEW]',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&auto=format&fit=crop&q=80',
+    isOnline: false,
+    unreadCount: 0,
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    isPreview: true,
+    lastMessage: {
+      id: 'msg-prev-3',
+      content: 'Catch up later this evening!',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+      senderName: 'David Miller',
+      type: 'TEXT',
+      status: 'READ',
+    },
+    participants: [
+      {
+        id: 'user-david',
+        displayName: 'David Miller [PREVIEW]',
+        username: 'david_m',
+        phoneNumber: '+15553334444',
+        isOnline: false,
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&auto=format&fit=crop&q=80',
+      },
+    ],
+  },
+];
+
+export const PREVIEW_MESSAGES: Record<string, Message[]> = {
+  'conv-preview-1': [
+    {
+      id: 'msg-p1-1',
+      conversationId: 'conv-preview-1',
+      senderId: 'user-alex',
+      senderName: 'Alex Morgan',
+      content: 'Hey! Welcome to the PingUp preview environment.',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+      status: 'READ',
+      isOutgoing: false,
+      isPreview: true,
+    },
+    {
+      id: 'msg-p1-2',
+      conversationId: 'conv-preview-1',
+      senderId: 'current-user',
+      senderName: 'You',
+      content: 'Thanks! Testing the message thread, responsive panels, and themes.',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+      status: 'READ',
+      isOutgoing: true,
+      isPreview: true,
+    },
+    {
+      id: 'msg-p1-3',
+      conversationId: 'conv-preview-1',
+      senderId: 'user-alex',
+      senderName: 'Alex Morgan',
+      content: 'Are you ready for the PingUp architecture walkthrough?',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      status: 'DELIVERED',
+      isOutgoing: false,
+      isPreview: true,
+    },
+  ],
+  'conv-preview-2': [
+    {
+      id: 'msg-p2-1',
+      conversationId: 'conv-preview-2',
+      senderId: 'user-sarah',
+      senderName: 'Sarah Chen',
+      content: 'Welcome to the core engineering channel! We are standardizing Phase 1 deliverables.',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      status: 'READ',
+      isOutgoing: false,
+      isPreview: true,
+    },
+    {
+      id: 'msg-p2-2',
+      conversationId: 'conv-preview-2',
+      senderId: 'current-user',
+      senderName: 'You',
+      content: 'Database migration and schema checks are looking solid.',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+      status: 'READ',
+      isOutgoing: true,
+      isPreview: true,
+    },
+  ],
+  'conv-preview-3': [
+    {
+      id: 'msg-p3-1',
+      conversationId: 'conv-preview-3',
+      senderId: 'user-david',
+      senderName: 'David Miller',
+      content: 'Catch up later this evening!',
+      type: 'TEXT',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+      status: 'READ',
+      isOutgoing: false,
+      isPreview: true,
+    },
+  ],
+};
+

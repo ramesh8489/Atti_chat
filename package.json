@@ -1,0 +1,19 @@
+{
+  "name": "atti-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Atti - Advanced Real-Time Messaging Application",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:frontend": "npm --prefix frontend test",
+    "test:backend": "npm --prefix backend test",
+    "test": "npm run test:backend && npm run test:frontend",
+    "prisma:generate": "npm --prefix backend run prisma:generate",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}

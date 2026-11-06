@@ -1,0 +1,109 @@
+name: PingUp CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Stage 1: Quality Assurance & Build Verification (CI)
+  # ============================================================
+  qa-and-build:
+    name: Lint, Test & Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      # --- Backend Validation ---
+      - name: Install Backend Dependencies
+        run: npm --prefix backend ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Backend TypeScript Check
+        run: npm --prefix backend run build
+
+      - name: Run Backend Automated Tests (123 tests)
+        run: npm --prefix backend test -- --run
+        env:
+          NODE_ENV: test
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test_db"
+
+      # --- Frontend Validation ---
+      - name: Install Frontend Dependencies
+        run: npm --prefix frontend ci
+
+      - name: Frontend TypeScript & Production Build Check
+        run: npm --prefix frontend run build
+
+      - name: Run Frontend Automated Tests (69 tests)
+        run: npm --prefix frontend test -- --run
+
+  # ============================================================
+  # Stage 2: Production Containerization & Deployment (CD)
+  # Gated: Only runs on merge/push to main branch after Stage 1 passes
+  # ============================================================
+  deploy-production:
+    name: Production Deployment Gate
+    needs: [qa-and-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment_url }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Production Deployment Secrets
+        run: |
+          echo "Verifying production deployment credentials presence..."
+          if [ -z "${{ secrets.PROD_HOST }}" ] && [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "::notice ::Deployment secrets not yet configured in GitHub Repository Settings. Skipping physical container dispatch until hosting provider credentials are provided."
+            exit 0
+          fi
+          echo "Secrets verification completed without printing confidential values."
+
+      # Optional SSH or PaaS deployment step (triggered when user configures credentials)
+      - name: Trigger Remote Docker Deployment (SSH)
+        if: env.PROD_HOST != ''
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "Initiating secure production deployment over SSH..."
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${PROD_HOST}" >> ~/.ssh/known_hosts
+
+          # Deploy with safe, non-destructive migration execution
+          ssh "${PROD_USER}@${PROD_HOST}" << 'EOF'
+            cd /opt/pingup
+            git pull origin main
+            docker-compose -f docker-compose.prod.yml build
+            # Non-destructive migration application only
+            docker-compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+            docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+          EOF
+          echo "Deployment command executed."
+

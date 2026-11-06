@@ -1,0 +1,96 @@
+# Render Blueprint Specification for PingUp (Zero-Budget Free Tier)
+# Blueprint Docs: https://render.com/docs/blueprint-spec
+# All services configured here operate strictly within Render's ₹0 / Free tier.
+version: "1"
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PingUp Frontend (Render Free Static Site)
+  # Free tier: 100 GB/month bandwidth, unlimited static hosting, automatic SSL.
+  # ---------------------------------------------------------------------------
+  - type: static
+    name: pingup-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      # Single-Page Application (SPA) rewrite rule: routes all paths to index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # Set to https://pingup-backend.onrender.com/api
+      - key: VITE_SOCKET_URL
+        sync: false # Set to https://pingup-backend.onrender.com
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # 2. PingUp Backend API & Real-Time Gateway (Render Free Web Service)
+  # Free tier: 512 MB RAM, 0.1 CPU, 750 free runtime hours/mo, sleeps after 15m idle.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: pingup-backend
+    runtime: node
+    plan: free
+    region: oregon # Recommended default region
+    rootDir: backend
+    # Builds Prisma client, applies non-destructive migrations safely, then compiles TypeScript
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    autoDeploy: false # Manual/selective deploys to conserve 750 monthly free runtime hours
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        sync: false # Set to https://pingup-frontend.onrender.com
+      - key: DATABASE_URL
+        sync: false # Free PostgreSQL connection string (Neon / Supabase / Render Free DB)
+      # Default to native in-memory mode for zero-cost single-instance deployment
+      - key: REDIS_ENABLED
+        value: "false"
+      - key: REDIS_URL
+        sync: false # Optional Upstash Redis URL if distributed cache is desired
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false # Cloudflare R2 Account Endpoint
+      - key: S3_BUCKET
+        sync: false # Cloudflare R2 Bucket Name (e.g., pingup-media)
+      - key: S3_REGION
+        value: auto
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: STUN_SERVERS
+        value: stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302
+      - key: TURN_SERVER_URL
+        sync: false # Metered.ca free TURN URL or empty if testing on same LAN/STUN
+      - key: TURN_USERNAME
+        sync: false
+      - key: TURN_CREDENTIAL
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:support@pingup.app
+
