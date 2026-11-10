@@ -48,7 +48,7 @@ services:
     region: oregon # Recommended default region
     rootDir: backend
     # Builds Prisma client, then compiles TypeScript
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npm run start
     healthCheckPath: /health
     autoDeploy: false # Manual/selective deploys to conserve 750 monthly free runtime hours
