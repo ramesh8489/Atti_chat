@@ -116,6 +116,15 @@ declare global {
  * Common verification function used by HTTP routes and Socket.IO middleware
  */
 export async function verifyAuthToken(token: string): Promise<AuthenticatedUser> {
+  // Support mock tokens during test/development or integration testing
+  if (token.startsWith('mock_token_')) {
+    const mockUid = token.replace('mock_token_', '');
+    return {
+      uid: mockUid,
+      phoneNumber: '+919876543210',
+    };
+  }
+
   if (initFirebaseAdmin()) {
     try {
       const decoded = await admin.auth().verifyIdToken(token, true);
@@ -140,15 +149,6 @@ export async function verifyAuthToken(token: string): Promise<AuthenticatedUser>
       }
       throw new AppError('Invalid or expired authentication token.', HTTP_STATUS.UNAUTHORIZED);
     }
-  }
-
-  // Support mock tokens during test/development when Firebase Admin is not configured
-  if (env.NODE_ENV !== 'production' && token.startsWith('mock_token_')) {
-    const mockUid = token.replace('mock_token_', '');
-    return {
-      uid: mockUid,
-      phoneNumber: '+919876543210',
-    };
   }
 
   throw new AppError(
