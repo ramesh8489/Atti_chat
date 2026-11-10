@@ -25,6 +25,13 @@ export function setupRecaptcha(containerId: string = 'recaptcha-container'): App
     cachedRecaptchaVerifier = null;
   }
 
+  if (typeof document !== 'undefined') {
+    const container = document.getElementById(containerId);
+    if (container) {
+      container.innerHTML = '';
+    }
+  }
+
   cachedRecaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
     callback: () => {
@@ -46,6 +53,12 @@ export function clearRecaptchaVerifier(): void {
       // Ignore
     }
     cachedRecaptchaVerifier = null;
+  }
+  if (typeof document !== 'undefined') {
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+      container.innerHTML = '';
+    }
   }
 }
 
