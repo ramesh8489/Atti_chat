@@ -8,8 +8,9 @@ services:
   # 1. PingUp Frontend (Render Free Static Site)
   # Free tier: 100 GB/month bandwidth, unlimited static hosting, automatic SSL.
   # ---------------------------------------------------------------------------
-  - type: static
+  - type: web
     name: pingup-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
