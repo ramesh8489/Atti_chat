@@ -21,9 +21,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        sync: false # Set to https://pingup-backend.onrender.com/api
+        value: https://pingup-backend-73b1.onrender.com/api
       - key: VITE_SOCKET_URL
-        sync: false # Set to https://pingup-backend.onrender.com
+        value: https://pingup-backend-73b1.onrender.com
       - key: VITE_FIREBASE_API_KEY
         sync: false
       - key: VITE_FIREBASE_AUTH_DOMAIN
@@ -56,7 +56,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: CORS_ORIGIN
-        sync: false # Set to https://pingup-frontend.onrender.com
+        value: https://pingup-frontend-wq7n.onrender.com
       - key: DATABASE_URL
         sync: false # Free PostgreSQL connection string (Neon / Supabase / Render Free DB)
       # Default to native in-memory mode for zero-cost single-instance deployment
