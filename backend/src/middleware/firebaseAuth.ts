@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
+import path from 'path';
 import admin from 'firebase-admin';
 import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
@@ -20,6 +22,33 @@ export function initFirebaseAdmin(): boolean {
     return true;
   }
   if (isFirebaseInitialized) return true;
+
+  // Check for Secret File path (Render Secret Files mount at /etc/secrets/<filename> or in root)
+  const candidateSecretPaths = [
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+    '/etc/secrets/firebase-service-account.json',
+    '/etc/secrets/serviceAccountKey.json',
+    path.resolve(process.cwd(), 'firebase-service-account.json'),
+    path.resolve(process.cwd(), 'serviceAccountKey.json'),
+    path.resolve(process.cwd(), 'backend', 'firebase-service-account.json'),
+  ].filter(Boolean) as string[];
+
+  for (const secretPath of candidateSecretPaths) {
+    if (fs.existsSync(secretPath)) {
+      try {
+        const fileContent = fs.readFileSync(secretPath, 'utf8');
+        const serviceAccount = JSON.parse(fileContent);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        isFirebaseInitialized = true;
+        logger.info(`Firebase Admin SDK initialized using secret file: ${secretPath}`);
+        return true;
+      } catch (err: any) {
+        logger.error(`Failed to initialize Firebase Admin from secret file ${secretPath}:`, { message: err?.message });
+      }
+    }
+  }
 
   // Check for Google Application Credentials path
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
