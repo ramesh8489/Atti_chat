@@ -25,17 +25,17 @@ services:
       - key: VITE_SOCKET_URL
         value: https://pingup-backend-73b1.onrender.com
       - key: VITE_FIREBASE_API_KEY
-        sync: false
+        value: AIzaSyAaGo8fpMgvIpPtILQxkhr2m6avbfZIo80
       - key: VITE_FIREBASE_AUTH_DOMAIN
-        sync: false
+        value: attichat-cbb92.firebaseapp.com
       - key: VITE_FIREBASE_PROJECT_ID
-        sync: false
+        value: attichat-cbb92
       - key: VITE_FIREBASE_STORAGE_BUCKET
-        sync: false
+        value: attichat-cbb92.firebasestorage.app
       - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        sync: false
+        value: "980322159603"
       - key: VITE_FIREBASE_APP_ID
-        sync: false
+        value: "1:980322159603:web:43feab652b87e57c9f2086"
 
   # ---------------------------------------------------------------------------
   # 2. PingUp Backend API & Real-Time Gateway (Render Free Web Service)
