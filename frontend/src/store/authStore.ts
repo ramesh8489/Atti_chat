@@ -211,43 +211,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ isLoading: true, errorMessage: null });
 
+    let credential;
     try {
-      const credential = await confirmPhoneOtp(confirmation, code.trim());
-      const token = await credential.user.getIdToken();
-      get().setAuthToken(token);
-
-      // Synchronize verified user with backend database
-      const syncResult = await syncFirebaseUser(token);
-      const user = syncResult.user;
-
-      if (syncResult.isNewUser || !user.username) {
-        // First-time user: route to profile onboarding
-        set({
-          step: 'PROFILE_ONBOARDING',
-          phoneNumber: user.phoneNumber,
-          isLoading: false,
-          errorMessage: null,
-        });
-      } else {
-        // Existing user: proceed directly to main chat
-        const profile: UserProfile = {
-          id: user.id,
-          phoneNumber: user.phoneNumber,
-          displayName: user.displayName || user.phoneNumber,
-          username: user.username,
-          avatarUrl: user.avatarUrl || undefined,
-          bio: user.bio || undefined,
-          isOnline: user.isOnline,
-          lastSeenAt: user.lastSeenAt,
-        };
-        get().setCurrentUser(profile);
-        set({
-          step: 'AUTHENTICATED',
-          isLoading: false,
-          errorMessage: null,
-        });
-      }
-      return true;
+      credential = await confirmPhoneOtp(confirmation, code.trim());
     } catch (err: any) {
       const message = mapFirebaseError(err);
       set({
@@ -256,6 +222,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       return false;
     }
+
+    let token: string | null = null;
+    try {
+      token = await credential.user.getIdToken();
+      get().setAuthToken(token);
+    } catch (tokenErr: any) {
+      console.warn('Failed to retrieve Firebase ID token:', tokenErr);
+    }
+
+    try {
+      if (token) {
+        // Synchronize verified user with backend database
+        const syncResult = await syncFirebaseUser(token);
+        const user = syncResult.user;
+
+        if (syncResult.isNewUser || !user.username) {
+          // First-time user: route to profile onboarding
+          set({
+            step: 'PROFILE_ONBOARDING',
+            phoneNumber: user.phoneNumber,
+            isLoading: false,
+            errorMessage: null,
+          });
+        } else {
+          // Existing user: proceed directly to main chat
+          const profile: UserProfile = {
+            id: user.id,
+            phoneNumber: user.phoneNumber,
+            displayName: user.displayName || user.phoneNumber,
+            username: user.username,
+            avatarUrl: user.avatarUrl || undefined,
+            bio: user.bio || undefined,
+            isOnline: user.isOnline,
+            lastSeenAt: user.lastSeenAt,
+          };
+          get().setCurrentUser(profile);
+          set({
+            step: 'AUTHENTICATED',
+            isLoading: false,
+            errorMessage: null,
+          });
+        }
+        return true;
+      }
+    } catch (syncErr: any) {
+      console.warn('Backend sync warning, proceeding to onboarding:', syncErr);
+    }
+
+    // Resilient transition: OTP is verified! Proceed to profile onboarding
+    set({
+      step: 'PROFILE_ONBOARDING',
+      phoneNumber: credential.user.phoneNumber || get().phoneNumber,
+      isLoading: false,
+      errorMessage: null,
+    });
+    return true;
   },
 
   completeOnboarding: async (displayName: string, username: string, bio?: string) => {

@@ -57,19 +57,7 @@ export function createApp(): Express {
   // 3. CORS configuration
   app.use(
     cors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const allowed = [
-          env.CORS_ORIGIN,
-          'https://pingup-frontend-wq7n.onrender.com',
-          'http://localhost:5173',
-          'http://localhost:3000',
-        ];
-        if (allowed.includes(origin) || origin.endsWith('.onrender.com')) {
-          return callback(null, true);
-        }
-        return callback(null, false);
-      },
+      origin: true,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID', 'X-Correlation-ID'],
