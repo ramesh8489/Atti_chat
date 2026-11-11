@@ -11,16 +11,24 @@ import {
   clearRecaptchaVerifier,
 } from '../services/firebaseAuthService';
 import {
+  checkPhoneApi,
   fetchCurrentUser,
+  phonePasswordAuthApi,
   syncFirebaseUser,
   updateUserProfile,
 } from '../services/apiClient';
 
-export type AuthStep = 'PHONE_ENTRY' | 'OTP_VERIFICATION' | 'PROFILE_ONBOARDING' | 'AUTHENTICATED';
+export type AuthStep =
+  | 'PHONE_ENTRY'
+  | 'PIN_AUTH'
+  | 'OTP_VERIFICATION'
+  | 'PROFILE_ONBOARDING'
+  | 'AUTHENTICATED';
 
 interface AuthState {
   step: AuthStep;
   phoneNumber: string;
+  phoneExists: boolean;
   confirmationResult: ConfirmationResult | null;
   currentUser: UserProfile | null;
   user: UserProfile | null;
@@ -38,8 +46,10 @@ interface AuthState {
   setError: (msg: string | null) => void;
   setLoading: (loading: boolean) => void;
 
-  // Firebase Phone Auth Actions
+  // Phone + PIN / Auth Actions
   initAuth: () => () => void;
+  continueWithPhone: (phone: string) => Promise<boolean>;
+  submitPhonePinAuth: (password: string, mode?: 'login' | 'register' | 'auto') => Promise<boolean>;
   startOtpVerification: (phone: string, containerId?: string) => Promise<boolean>;
   verifyOtp: (code: string) => Promise<boolean>;
   completeOnboarding: (displayName: string, username: string, bio?: string) => Promise<boolean>;
@@ -67,6 +77,7 @@ const initialToken = localStorage.getItem(STORAGE_KEY_TOKEN);
 export const useAuthStore = create<AuthState>((set, get) => ({
   step: initialUser && initialUser.username ? 'AUTHENTICATED' : 'PHONE_ENTRY',
   phoneNumber: initialUser?.phoneNumber || '',
+  phoneExists: false,
   confirmationResult: null,
   currentUser: initialUser,
   user: initialUser,
@@ -107,8 +118,83 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setLoading: (isLoading) => set({ isLoading }),
 
   initAuth: () => {
+    const restoreSessionFromToken = async () => {
+      const storedToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+      if (!storedToken) {
+        set({
+          currentUser: null,
+          user: null,
+          authToken: null,
+          token: null,
+          isAuthenticated: false,
+          step: 'PHONE_ENTRY',
+          isInitialized: true,
+        });
+        return;
+      }
+
+      try {
+        const meData = await fetchCurrentUser(storedToken);
+        if (meData.user && meData.user.username) {
+          const userProfile: UserProfile = {
+            id: meData.user.id,
+            phoneNumber: meData.user.phoneNumber,
+            displayName: meData.user.displayName || meData.user.phoneNumber,
+            username: meData.user.username,
+            avatarUrl: meData.user.avatarUrl || undefined,
+            bio: meData.user.bio || undefined,
+            isOnline: meData.user.isOnline,
+            lastSeenAt: meData.user.lastSeenAt,
+          };
+          get().setCurrentUser(userProfile);
+          set({
+            step: 'AUTHENTICATED',
+            phoneNumber: meData.user.phoneNumber,
+            isAuthenticated: true,
+            isInitialized: true,
+          });
+        } else if (meData.user) {
+          set({
+            step: 'PROFILE_ONBOARDING',
+            phoneNumber: meData.user.phoneNumber,
+            isInitialized: true,
+          });
+        } else {
+          localStorage.removeItem(STORAGE_KEY_USER);
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          set({
+            currentUser: null,
+            user: null,
+            authToken: null,
+            token: null,
+            isAuthenticated: false,
+            step: 'PHONE_ENTRY',
+            isInitialized: true,
+          });
+        }
+      } catch (err: any) {
+        const msg = err?.message || '';
+        const isAuthFailure = /unauthorized|invalid|expired|revoked|bearer/i.test(msg);
+        if (isAuthFailure || !get().currentUser) {
+          localStorage.removeItem(STORAGE_KEY_USER);
+          localStorage.removeItem(STORAGE_KEY_TOKEN);
+          set({
+            currentUser: null,
+            user: null,
+            authToken: null,
+            token: null,
+            isAuthenticated: false,
+            step: 'PHONE_ENTRY',
+            isInitialized: true,
+          });
+        } else {
+          set({ isInitialized: true });
+        }
+      }
+    };
+
     if (!isFirebaseConfigured()) {
-      set({ isInitialized: true });
+      void restoreSessionFromToken();
       return () => {};
     }
 
@@ -150,18 +236,87 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ isInitialized: true });
         }
       } else {
-        set({
-          currentUser: null,
-          authToken: null,
-          step: 'PHONE_ENTRY',
-          isInitialized: true,
-        });
-        localStorage.removeItem(STORAGE_KEY_USER);
-        localStorage.removeItem(STORAGE_KEY_TOKEN);
+        await restoreSessionFromToken();
       }
     });
 
     return unsubscribe;
+  },
+
+  continueWithPhone: async (phone: string) => {
+    set({ isLoading: true, errorMessage: null });
+    try {
+      const result = await checkPhoneApi(phone);
+      set({
+        phoneNumber: phone,
+        phoneExists: Boolean(result.exists && result.hasPassword),
+        step: 'PIN_AUTH',
+        isLoading: false,
+        errorMessage: null,
+      });
+      return true;
+    } catch (err: any) {
+      set({
+        isLoading: false,
+        errorMessage: err?.message || 'Unable to verify phone number. Please try again.',
+      });
+      return false;
+    }
+  },
+
+  submitPhonePinAuth: async (password: string, mode: 'login' | 'register' | 'auto' = 'auto') => {
+    const phone = get().phoneNumber;
+    if (!phone) {
+      set({ step: 'PHONE_ENTRY', errorMessage: 'Please enter your phone number first.' });
+      return false;
+    }
+
+    set({ isLoading: true, errorMessage: null });
+    try {
+      const result = await phonePasswordAuthApi({
+        phoneNumber: phone,
+        password,
+        mode,
+      });
+
+      get().setAuthToken(result.token);
+      const user = result.user;
+
+      if (result.isNewUser || !user.username) {
+        set({
+          step: 'PROFILE_ONBOARDING',
+          phoneNumber: user.phoneNumber,
+          isLoading: false,
+          errorMessage: null,
+        });
+      } else {
+        const profile: UserProfile = {
+          id: user.id,
+          phoneNumber: user.phoneNumber,
+          displayName: user.displayName || user.phoneNumber,
+          username: user.username,
+          avatarUrl: user.avatarUrl || undefined,
+          bio: user.bio || undefined,
+          isOnline: user.isOnline,
+          lastSeenAt: user.lastSeenAt,
+        };
+        get().setCurrentUser(profile);
+        set({
+          step: 'AUTHENTICATED',
+          phoneNumber: user.phoneNumber,
+          isAuthenticated: true,
+          isLoading: false,
+          errorMessage: null,
+        });
+      }
+      return true;
+    } catch (err: any) {
+      set({
+        isLoading: false,
+        errorMessage: err?.message || 'Authentication failed. Please check your PIN/password.',
+      });
+      return false;
+    }
   },
 
   startOtpVerification: async (phone: string, containerId: string = 'recaptcha-container') => {
@@ -311,25 +466,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
         return true;
       } catch (err: any) {
-        console.warn('Backend update error, saving profile optimistically:', err);
-        const phone = get().phoneNumber || '+919876543210';
-        const fallbackProfile: UserProfile = {
-          id: `usr_${Date.now()}`,
-          phoneNumber: phone,
-          displayName: displayName.trim(),
-          username: username.trim().toLowerCase(),
-          bio: bio?.trim() || 'Hey there! I am using PingUp.',
-          isOnline: true,
-          lastSeenAt: new Date().toISOString(),
-        };
-        get().setCurrentUser(fallbackProfile);
         set({
-          currentUser: fallbackProfile,
-          step: 'AUTHENTICATED',
           isLoading: false,
-          errorMessage: null,
+          errorMessage: err?.message || 'Failed to save your profile. Please try again.',
         });
-        return true;
+        return false;
       }
     } else {
       // Local fallback if token unavailable

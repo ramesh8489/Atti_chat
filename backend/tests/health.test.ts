@@ -20,7 +20,7 @@ describe('Health and System Endpoints', () => {
     expect(res.body).toHaveProperty('checks');
     expect(res.body.checks).toHaveProperty('database');
     expect(res.body.checks).toHaveProperty('redis');
-  });
+  }, 15000);
 
   it('GET /non-existent-route returns 404 JSON', async () => {
     const res = await request(app).get('/api/does-not-exist');

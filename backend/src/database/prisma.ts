@@ -6,9 +6,24 @@ declare global {
   var __prismaClient: PrismaClient | undefined;
 }
 
+function getSanitizedDatabaseUrl(): string | undefined {
+  const rawUrl = process.env.DATABASE_URL;
+  if (!rawUrl) return undefined;
+
+  const isPgBouncerPooler = rawUrl.includes('pooler.') || rawUrl.includes(':6543/');
+  if (isPgBouncerPooler && !rawUrl.includes('pgbouncer=')) {
+    const separator = rawUrl.includes('?') ? '&' : '?';
+    return `${rawUrl}${separator}pgbouncer=true`;
+  }
+  return rawUrl;
+}
+
+const sanitizedUrl = getSanitizedDatabaseUrl();
+
 export const prisma =
   global.__prismaClient ||
   new PrismaClient({
+    ...(sanitizedUrl ? { datasources: { db: { url: sanitizedUrl } } } : {}),
     log: [
       { emit: 'event', level: 'query' },
       { emit: 'event', level: 'error' },

@@ -19,7 +19,7 @@ describe('PingUp Application Mounting and Routing', () => {
   it('renders auth welcome screen when unauthenticated', () => {
     render(<App />);
     expect(screen.getByText(/Welcome to PingUp/i)).toBeInTheDocument();
-    expect(screen.getByText(/Enter your verified phone number/i)).toBeInTheDocument();
+    expect(screen.getByText(/Enter your phone number to log in or create an account/i)).toBeInTheDocument();
   });
 
   it('contains phone number input field defaulting to India (+91)', () => {

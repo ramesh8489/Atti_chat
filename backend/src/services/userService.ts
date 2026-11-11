@@ -1,6 +1,8 @@
+import crypto from 'crypto';
 import { prisma } from '../database/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { HTTP_STATUS } from '../constants/index.js';
+import { hashPassword, signAttiToken, verifyPassword } from './authTokenService.js';
 
 export interface UpdateProfileInput {
   displayName?: string;
@@ -9,23 +11,25 @@ export interface UpdateProfileInput {
   avatarUrl?: string;
 }
 
+export const PUBLIC_USER_SELECT = {
+  id: true,
+  firebaseUid: true,
+  phoneNumber: true,
+  username: true,
+  displayName: true,
+  avatarUrl: true,
+  bio: true,
+  statusMessage: true,
+  isOnline: true,
+  lastSeenAt: true,
+  createdAt: true,
+} as const;
+
 export async function findUserByFirebaseUid(firebaseUid: string) {
   try {
     return await prisma.user.findUnique({
       where: { firebaseUid },
-      select: {
-        id: true,
-        firebaseUid: true,
-        phoneNumber: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-        statusMessage: true,
-        isOnline: true,
-        lastSeenAt: true,
-        createdAt: true,
-      },
+      select: PUBLIC_USER_SELECT,
     });
   } catch (error: any) {
     throw new AppError(`Database query failed: ${error.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR);
@@ -136,7 +140,7 @@ export async function updateUserProfile(userId: string, input: UpdateProfileInpu
   }
 
   try {
-    return await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
@@ -145,13 +149,176 @@ export async function updateUserProfile(userId: string, input: UpdateProfileInpu
         ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
       },
     });
+    if (!updated) return updated;
+    const { passwordHash: _passwordHash, ...safeUser } = updated as any;
+    return safeUser;
   } catch (error: any) {
     throw new AppError(`Failed to update profile: ${error.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
 }
 
+export function normalizePhoneNumber(rawPhoneNumber: string): string {
+  const cleaned = (rawPhoneNumber || '').replace(/[\s\-()]/g, '').trim();
+  const normalized = cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
+  if (!/^\+[1-9]\d{6,14}$/.test(normalized)) {
+    throw new AppError(
+      'Please enter a valid phone number with country code (e.g. +919876543210).',
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+  return normalized;
+}
+
+export async function checkPhoneExists(rawPhoneNumber: string): Promise<{ exists: boolean; hasPassword: boolean }> {
+  const phoneNumber = normalizePhoneNumber(rawPhoneNumber);
+  try {
+    const existing = await prisma.user.findUnique({
+      where: { phoneNumber },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+    return {
+      exists: Boolean(existing),
+      hasPassword: Boolean(existing?.passwordHash),
+    };
+  } catch (error: any) {
+    throw new AppError(`Failed to check phone number: ${error.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+}
+
+export interface PhonePasswordAuthInput {
+  phoneNumber: string;
+  password: string;
+  mode?: 'login' | 'register' | 'auto';
+}
+
+export async function authenticateWithPhonePassword(input: PhonePasswordAuthInput) {
+  const phoneNumber = normalizePhoneNumber(input.phoneNumber);
+  const password = input.password || '';
+  const mode = input.mode || 'auto';
+
+  if (password.length < 4 || password.length > 128) {
+    throw new AppError('PIN or password must be between 4 and 128 characters.', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  try {
+    const existing = await prisma.user.findUnique({
+      where: { phoneNumber },
+    });
+
+    if (!existing) {
+      if (mode === 'login') {
+        throw new AppError(
+          'No account found for this phone number. Create a PIN to register.',
+          HTTP_STATUS.NOT_FOUND
+        );
+      }
+
+      const passwordHash = hashPassword(password);
+      const created = await prisma.user.create({
+        data: {
+          firebaseUid: `phone_${crypto.randomUUID()}`,
+          phoneNumber,
+          displayName: phoneNumber,
+          passwordHash,
+        },
+        select: PUBLIC_USER_SELECT,
+      });
+
+      const token = signAttiToken({
+        userId: created.id,
+        firebaseUid: created.firebaseUid,
+        phoneNumber: created.phoneNumber,
+      });
+
+      return {
+        user: created,
+        token,
+        isNewUser: true,
+      };
+    }
+
+    if (mode === 'register' && existing.passwordHash) {
+      throw new AppError(
+        'This phone number is already registered. Please enter your PIN/password to log in.',
+        HTTP_STATUS.CONFLICT
+      );
+    }
+
+    if (!existing.passwordHash) {
+      if (mode === 'login') {
+        throw new AppError(
+          'No PIN/password is set for this account yet. Use Register to set your PIN.',
+          HTTP_STATUS.UNAUTHORIZED
+        );
+      }
+
+      const passwordHash = hashPassword(password);
+      const updated = await prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          passwordHash,
+          lastSeenAt: new Date(),
+        },
+        select: PUBLIC_USER_SELECT,
+      });
+
+      const token = signAttiToken({
+        userId: updated.id,
+        firebaseUid: updated.firebaseUid,
+        phoneNumber: updated.phoneNumber,
+      });
+
+      return {
+        user: updated,
+        token,
+        isNewUser: !updated.username,
+      };
+    }
+
+    const isValid = verifyPassword(password, existing.passwordHash);
+    if (!isValid) {
+      throw new AppError('Incorrect PIN or password. Please try again.', HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        lastSeenAt: new Date(),
+      },
+      select: PUBLIC_USER_SELECT,
+    });
+
+    const token = signAttiToken({
+      userId: updated.id,
+      firebaseUid: updated.firebaseUid,
+      phoneNumber: updated.phoneNumber,
+    });
+
+    return {
+      user: updated,
+      token,
+      isNewUser: !updated.username,
+    };
+  } catch (error: any) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    if (error?.code === 'P2002') {
+      throw new AppError(
+        'This phone number is already registered. Please enter your PIN/password to log in.',
+        HTTP_STATUS.CONFLICT
+      );
+    }
+    throw new AppError(`Authentication failed: ${error.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR);
+  }
+}
+
 export async function searchUsers(query: string, currentUserId: string) {
   const q = (query || '').trim();
+  const qDigits = q.replace(/[\s\-()]/g, '');
 
   return await prisma.user.findMany({
     where: {
@@ -164,6 +331,9 @@ export async function searchUsers(query: string, currentUserId: string) {
                   { username: { contains: q, mode: 'insensitive' as const } },
                   { displayName: { contains: q, mode: 'insensitive' as const } },
                   { phoneNumber: { contains: q } },
+                  ...(qDigits.length >= 3 && qDigits !== q
+                    ? [{ phoneNumber: { contains: qDigits } }]
+                    : []),
                 ],
               },
             ]

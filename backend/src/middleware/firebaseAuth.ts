@@ -6,6 +6,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { AppError } from './errorHandler.js';
 import { HTTP_STATUS } from '../constants/index.js';
+import { isAttiAuthJwt, verifyAttiToken } from '../services/authTokenService.js';
 
 let isFirebaseInitialized = false;
 
@@ -116,12 +117,22 @@ declare global {
  * Common verification function used by HTTP routes and Socket.IO middleware
  */
 export async function verifyAuthToken(token: string): Promise<AuthenticatedUser> {
-  // Support mock tokens during test/development or integration testing
-  if (token.startsWith('mock_token_')) {
+  // Support mock tokens only in test/development environments (never in production)
+  const isProduction = process.env.NODE_ENV === 'production' || env.NODE_ENV === 'production';
+  if (!isProduction && token.startsWith('mock_token_')) {
     const mockUid = token.replace('mock_token_', '');
     return {
       uid: mockUid,
       phoneNumber: '+919876543210',
+    };
+  }
+
+  // Verify native Phone + PIN HS256 JWT issued by /api/auth/phone-auth
+  if (isAttiAuthJwt(token)) {
+    const verified = verifyAttiToken(token);
+    return {
+      uid: verified.uid,
+      phoneNumber: verified.phoneNumber,
     };
   }
 

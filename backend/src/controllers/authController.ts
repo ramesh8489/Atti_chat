@@ -1,6 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { HTTP_STATUS } from '../constants/index.js';
-import { findUserByFirebaseUid, syncUserFromFirebase } from '../services/userService.js';
+import {
+  authenticateWithPhonePassword,
+  checkPhoneExists,
+  findUserByFirebaseUid,
+  syncUserFromFirebase,
+} from '../services/userService.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 export async function getCurrentUser(req: Request, res: Response) {
@@ -41,4 +46,31 @@ export async function syncFirebaseUser(req: Request, res: Response) {
     user,
     isNewUser,
   });
+}
+
+export async function checkPhone(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await checkPhoneExists(req.body.phoneNumber);
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+export async function phonePasswordAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { phoneNumber, password, mode } = req.body;
+    const result = await authenticateWithPhonePassword({ phoneNumber, password, mode });
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      user: result.user,
+      token: result.token,
+      isNewUser: result.isNewUser,
+    });
+  } catch (err) {
+    return next(err);
+  }
 }

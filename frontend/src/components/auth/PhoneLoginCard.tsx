@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Phone, ArrowRight, Shield, AlertCircle, Info } from 'lucide-react';
+import { Phone, ArrowRight, Shield, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { isFirebaseConfigured } from '../../config/firebase';
 
 export const COUNTRY_CODES = [
   { code: '+91', flag: '🇮🇳', label: 'India' },
@@ -16,10 +15,9 @@ export const COUNTRY_CODES = [
 ];
 
 export const PhoneLoginCard: React.FC = () => {
-  const { startOtpVerification, isLoading, errorMessage, setError } = useAuthStore();
+  const { continueWithPhone, isLoading, errorMessage, setError } = useAuthStore();
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const firebaseConfigured = isFirebaseConfigured();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +27,7 @@ export const PhoneLoginCard: React.FC = () => {
       return;
     }
     const fullPhone = `${countryCode}${cleanNumber}`;
-    await startOtpVerification(fullPhone, 'recaptcha-container');
+    await continueWithPhone(fullPhone);
   };
 
   const getPlaceholder = () => {
@@ -46,21 +44,9 @@ export const PhoneLoginCard: React.FC = () => {
           Welcome to PingUp
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-          Enter your verified phone number to get started
+          Enter your phone number to log in or create an account
         </p>
       </div>
-
-      {!firebaseConfigured && (
-        <div className="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="font-semibold">Firebase Setup Pending</span>
-            <p className="text-[11px] mt-0.5 text-amber-700 dark:text-amber-400">
-              Provide Firebase Web credentials in <code className="bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">frontend/.env</code> to send SMS OTPs. You can also configure test phone numbers in Firebase Console for zero SMS cost.
-            </p>
-          </div>
-        </div>
-      )}
 
       {errorMessage && (
         <div className="mb-5 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 flex items-start gap-2.5 text-xs text-red-600 dark:text-red-400">
@@ -104,9 +90,6 @@ export const PhoneLoginCard: React.FC = () => {
           </div>
         </div>
 
-        {/* Firebase reCAPTCHA Invisible Container */}
-        <div id="recaptcha-container" className="flex justify-center my-1" />
-
         <button
           type="submit"
           disabled={isLoading || !phoneNumber.trim()}
@@ -126,7 +109,7 @@ export const PhoneLoginCard: React.FC = () => {
       <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800 flex items-start gap-2.5 text-[11px] text-gray-400 dark:text-gray-500">
         <Shield className="w-4 h-4 flex-shrink-0 text-brand-500 mt-0.5" />
         <p>
-          PingUp uses Firebase Phone Auth with reCAPTCHA verification. Standard carrier SMS rates apply.
+          Sign in or register instantly with any mobile number and a private PIN — zero SMS cost or test number limits.
         </p>
       </div>
     </div>

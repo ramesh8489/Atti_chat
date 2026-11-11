@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '../store/authStore';
 import { PhoneLoginCard } from '../components/auth/PhoneLoginCard';
+import { PinAuthCard } from '../components/auth/PinAuthCard';
 import { OtpVerificationCard } from '../components/auth/OtpVerificationCard';
 import { ProfileOnboardingCard } from '../components/auth/ProfileOnboardingCard';
 import { MessageSquare, ShieldCheck, Lock } from 'lucide-react';
@@ -24,7 +25,7 @@ export const AuthPage: React.FC = () => {
             PingUp
           </h1>
           <p className="text-xs text-brand-600 dark:text-brand-400 font-semibold tracking-wide uppercase">
-            Phase 2 Phone Authentication
+            Instant Phone + PIN Messaging
           </p>
         </div>
       </div>
@@ -32,6 +33,7 @@ export const AuthPage: React.FC = () => {
       {/* Auth Card by Step */}
       <div className="w-full max-w-md z-10">
         {step === 'PHONE_ENTRY' && <PhoneLoginCard />}
+        {step === 'PIN_AUTH' && <PinAuthCard />}
         {step === 'OTP_VERIFICATION' && <OtpVerificationCard />}
         {step === 'PROFILE_ONBOARDING' && <ProfileOnboardingCard />}
       </div>
@@ -39,7 +41,7 @@ export const AuthPage: React.FC = () => {
       {/* Feature Badges */}
       <div className="mt-10 flex flex-wrap justify-center gap-4 text-xs text-gray-400 dark:text-gray-500 z-10">
         <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Firebase Phone Auth
+          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Phone + PIN Auth
         </span>
         <span>•</span>
         <span className="flex items-center gap-1.5">

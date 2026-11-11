@@ -25,6 +25,9 @@ const envSchema = z.object({
   FIREBASE_CLIENT_EMAIL: z.string().optional().default(''),
   FIREBASE_PRIVATE_KEY: z.string().optional().default(''),
 
+  // Phone + PIN / JWT Auth
+  JWT_SECRET: z.string().optional().default(''),
+
   // WebRTC STUN / TURN
   STUN_SERVERS: z.string().default('stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302'),
   TURN_SERVER_URL: z.string().optional().default(''),

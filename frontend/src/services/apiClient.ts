@@ -27,6 +27,55 @@ export interface MeResponse {
   message?: string;
 }
 
+export interface CheckPhoneResponse {
+  success: boolean;
+  exists: boolean;
+  hasPassword: boolean;
+}
+
+export interface PhoneAuthResponse {
+  success: boolean;
+  user: ApiUser;
+  token: string;
+  isNewUser: boolean;
+}
+
+export async function checkPhoneApi(phoneNumber: string): Promise<CheckPhoneResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/check-phone`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phoneNumber }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to verify phone number status');
+  }
+  return data;
+}
+
+export async function phonePasswordAuthApi(payload: {
+  phoneNumber: string;
+  password: string;
+  mode?: 'login' | 'register' | 'auto';
+}): Promise<PhoneAuthResponse> {
+  const res = await fetch(`${API_BASE_URL}/auth/phone-auth`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Authentication failed. Please check your PIN/password.');
+  }
+  return data;
+}
+
 export async function fetchCurrentUser(token: string): Promise<MeResponse> {
   const res = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'GET',

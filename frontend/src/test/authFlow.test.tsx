@@ -13,6 +13,8 @@ vi.mock('../services/firebaseAuthService', () => ({
 }));
 
 vi.mock('../services/apiClient', () => ({
+  checkPhoneApi: vi.fn(),
+  phonePasswordAuthApi: vi.fn(),
   fetchCurrentUser: vi.fn(),
   syncFirebaseUser: vi.fn(),
   updateUserProfile: vi.fn(),
@@ -31,12 +33,94 @@ describe('Authentication Flow and State Management', () => {
     useAuthStore.setState({
       step: 'PHONE_ENTRY',
       phoneNumber: '',
+      phoneExists: false,
       confirmationResult: null,
       currentUser: null,
       authToken: null,
       isLoading: false,
       errorMessage: null,
     });
+  });
+
+  it('handles new Phone + PIN registration: check-phone -> PIN_AUTH -> PROFILE_ONBOARDING -> AUTHENTICATED', async () => {
+    (apiClient.checkPhoneApi as any).mockResolvedValue({
+      success: true,
+      exists: false,
+      hasPassword: false,
+    });
+
+    const proceeded = await useAuthStore.getState().continueWithPhone('+916385328489');
+    expect(proceeded).toBe(true);
+    expect(useAuthStore.getState().step).toBe('PIN_AUTH');
+    expect(useAuthStore.getState().phoneExists).toBe(false);
+
+    (apiClient.phonePasswordAuthApi as any).mockResolvedValue({
+      success: true,
+      token: 'atti_jwt_new_user',
+      isNewUser: true,
+      user: {
+        id: 'usr_pin_1',
+        firebaseUid: 'phone_uuid_1',
+        phoneNumber: '+916385328489',
+        username: null,
+        displayName: '+916385328489',
+      },
+    });
+
+    const authed = await useAuthStore.getState().submitPhonePinAuth('2580', 'register');
+    expect(authed).toBe(true);
+    expect(useAuthStore.getState().step).toBe('PROFILE_ONBOARDING');
+    expect(useAuthStore.getState().authToken).toBe('atti_jwt_new_user');
+
+    (apiClient.updateUserProfile as any).mockResolvedValue({
+      success: true,
+      user: {
+        id: 'usr_pin_1',
+        firebaseUid: 'phone_uuid_1',
+        phoneNumber: '+916385328489',
+        displayName: 'Ramesh',
+        username: 'ramesh',
+        bio: 'Hey there!',
+        isOnline: true,
+        lastSeenAt: new Date().toISOString(),
+      },
+    });
+
+    const completed = await useAuthStore.getState().completeOnboarding('Ramesh', 'ramesh', 'Hey there!');
+    expect(completed).toBe(true);
+    expect(useAuthStore.getState().step).toBe('AUTHENTICATED');
+    expect(useAuthStore.getState().currentUser?.id).toBe('usr_pin_1');
+  });
+
+  it('handles returning Phone + PIN login: check-phone -> PIN_AUTH -> AUTHENTICATED', async () => {
+    (apiClient.checkPhoneApi as any).mockResolvedValue({
+      success: true,
+      exists: true,
+      hasPassword: true,
+    });
+
+    await useAuthStore.getState().continueWithPhone('+919876543210');
+    expect(useAuthStore.getState().phoneExists).toBe(true);
+
+    (apiClient.phonePasswordAuthApi as any).mockResolvedValue({
+      success: true,
+      token: 'atti_jwt_existing',
+      isNewUser: false,
+      user: {
+        id: 'usr_pin_2',
+        firebaseUid: 'phone_uuid_2',
+        phoneNumber: '+919876543210',
+        displayName: 'Friend',
+        username: 'friend',
+        isOnline: true,
+        lastSeenAt: new Date().toISOString(),
+      },
+    });
+
+    const loggedIn = await useAuthStore.getState().submitPhonePinAuth('2580', 'login');
+    expect(loggedIn).toBe(true);
+    expect(useAuthStore.getState().step).toBe('AUTHENTICATED');
+    expect(useAuthStore.getState().currentUser?.username).toBe('friend');
   });
 
   it('handles first-time user: sends OTP, confirms, and navigates to PROFILE_ONBOARDING', async () => {

@@ -24,6 +24,7 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "firebaseUid" TEXT NOT NULL,
     "phoneNumber" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "username" TEXT,
     "displayName" TEXT,
     "avatarUrl" TEXT,
