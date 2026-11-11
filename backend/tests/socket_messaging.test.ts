@@ -167,7 +167,12 @@ describe('Socket.IO Real-Time Messaging & Presence Gateway', () => {
       new Promise<void>((res) => clientBob.on('connect', () => res())),
     ]);
 
-    // Bob listens for receive message
+    // Bob listens for receive message; Alice should NOT receive her own message echo
+    let aliceEchoed = false;
+    clientAlice.on(SOCKET_EVENTS.RECEIVE_MESSAGE, () => {
+      aliceEchoed = true;
+    });
+
     const bobReceivePromise = new Promise<any>((resolve) => {
       clientBob.on(SOCKET_EVENTS.RECEIVE_MESSAGE, (data) => {
         resolve(data);
@@ -179,14 +184,26 @@ describe('Socket.IO Real-Time Messaging & Presence Gateway', () => {
       clientAlice.emit(SOCKET_EVENTS.JOIN_ROOM, { conversationId: 'conv-101' }, () => res());
     });
 
-    clientAlice.emit(SOCKET_EVENTS.SEND_MESSAGE, {
-      conversationId: 'conv-101',
-      content: 'Hello Bob!',
+    const ackPromise = new Promise<any>((resolve) => {
+      clientAlice.emit(
+        SOCKET_EVENTS.SEND_MESSAGE,
+        {
+          conversationId: 'conv-101',
+          content: 'Hello Bob!',
+        },
+        (res: any) => resolve(res)
+      );
     });
 
-    const received = await bobReceivePromise;
+    const [received, ack] = await Promise.all([bobReceivePromise, ackPromise]);
+    await new Promise((r) => setTimeout(r, 50));
+
     expect(received.content).toBe('Hello Bob!');
     expect(received.senderId).toBe('usr-alice');
+    expect(received.isOutgoing).toBe(false);
+    expect(ack?.success).toBe(true);
+    expect(ack?.message?.isOutgoing).toBe(true);
+    expect(aliceEchoed).toBe(false);
 
     clientAlice.close();
     clientBob.close();

@@ -1,16 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
-import { HTTP_STATUS } from '../constants/index.js';
+import { HTTP_STATUS, SOCKET_EVENTS } from '../constants/index.js';
 import {
   getUserConversations,
   getConversationById,
   createDirectConversation,
   createGroupConversation,
   getConversationMessages,
+  getConversationParticipantUserIds,
   createMessage,
   markMessagesAsRead,
 } from '../services/conversationService.js';
 import { findUserByFirebaseUid } from '../services/userService.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { broadcastNewMessage, getIo } from '../socket/socketServer.js';
 
 export async function listConversations(req: Request, res: Response, next: NextFunction) {
   try {
@@ -73,6 +75,19 @@ export async function createConversation(req: Request, res: Response, next: Next
     }
 
     const conversation = await createDirectConversation(user.id, targetUserId);
+
+    const io = getIo();
+    if (io && conversation?.id) {
+      io.in(`user:${user.id}`).socketsJoin(`conv:${conversation.id}`);
+      io.in(`user:${targetUserId}`).socketsJoin(`conv:${conversation.id}`);
+      try {
+        const targetView = await getConversationById(conversation.id, targetUserId);
+        io.to(`user:${targetUserId}`).emit(SOCKET_EVENTS.CONVERSATION_NEW, targetView);
+      } catch {
+        // Fallback: recipient refreshes on next incoming message
+      }
+    }
+
     return res.status(HTTP_STATUS.CREATED).json({
       success: true,
       conversation,
@@ -103,6 +118,18 @@ export async function createGroup(req: Request, res: Response, next: NextFunctio
       memberUserIds,
       avatarUrl,
     });
+
+    const io = getIo();
+    if (io && conversation?.id && Array.isArray(conversation.participants)) {
+      for (const p of conversation.participants) {
+        io.in(`user:${p.id}`).socketsJoin(`conv:${conversation.id}`);
+        if (p.id !== user.id) {
+          getConversationById(conversation.id, p.id)
+            .then((view) => io.to(`user:${p.id}`).emit(SOCKET_EVENTS.CONVERSATION_NEW, view))
+            .catch(() => {});
+        }
+      }
+    }
 
     return res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -152,6 +179,9 @@ export async function sendMessage(req: Request, res: Response, next: NextFunctio
     const { content, type, replyToId } = req.body;
 
     const message = await createMessage(user.id, conversationId, content, type, replyToId);
+    const participantIds = await getConversationParticipantUserIds(conversationId);
+    broadcastNewMessage(message, user.id, participantIds);
+
     return res.status(HTTP_STATUS.CREATED).json({
       success: true,
       message,

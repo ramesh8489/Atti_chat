@@ -175,6 +175,7 @@ interface ChatState {
 }
 
 let socketUnsubscribers: Array<() => void> = [];
+let lastRealtimeUserId: string | null = null;
 
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: PREVIEW_CONVERSATIONS,
@@ -305,6 +306,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
   initRealtime: async (token, currentUserId) => {
     get().cleanupRealtime();
 
+    if (lastRealtimeUserId && lastRealtimeUserId !== currentUserId) {
+      set({
+        conversations: [],
+        activeConversationId: null,
+        messages: {},
+        searchedUsers: [],
+      });
+    }
+    lastRealtimeUserId = currentUserId;
+
     socketService.connect(token);
 
     // 1. Subscribe to incoming messages
@@ -312,30 +323,58 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const activeId = get().activeConversationId;
       const convId = message.conversationId;
       const isCurrentActive = activeId === convId;
+      const isMine = message.senderId ? message.senderId === currentUserId : Boolean(message.isOutgoing);
+      const normalizedMessage = { ...message, isOutgoing: isMine };
+      let shouldReloadConversations = false;
 
       set((state) => {
         const existingList = state.messages[convId] || [];
-        const alreadyExists = existingList.some((m) => m.id === message.id);
-        const updatedList = alreadyExists ? existingList : [...existingList, message];
+        const alreadyById = existingList.some((m) => m.id === normalizedMessage.id);
+
+        let updatedList = existingList;
+        if (!alreadyById) {
+          if (isMine) {
+            const tempIdx = existingList.findIndex(
+              (m) => m.id.startsWith('temp-') && m.content === normalizedMessage.content
+            );
+            if (tempIdx !== -1) {
+              updatedList = existingList.map((m, idx) => (idx === tempIdx ? normalizedMessage : m));
+            } else {
+              updatedList = [...existingList, normalizedMessage];
+            }
+          } else {
+            updatedList = [...existingList, normalizedMessage];
+          }
+        }
+
+        const convExists = state.conversations.some((c) => c.id === convId);
+        if (!convExists) {
+          shouldReloadConversations = true;
+        }
 
         const updatedConversations = state.conversations.map((c) => {
           if (c.id === convId) {
             return {
               ...c,
               lastMessage: {
-                id: message.id,
-                content: message.content,
-                createdAt: message.createdAt,
-                senderName: message.senderName || 'User',
-                type: message.type || 'TEXT',
-                status: message.status || 'SENT',
+                id: normalizedMessage.id,
+                content: normalizedMessage.content,
+                createdAt: normalizedMessage.createdAt,
+                senderName: isMine ? 'You' : normalizedMessage.senderName || 'User',
+                type: normalizedMessage.type || 'TEXT',
+                status: normalizedMessage.status || 'SENT',
               },
-              updatedAt: message.createdAt,
-              unreadCount: isCurrentActive ? 0 : c.unreadCount + 1,
+              updatedAt: normalizedMessage.createdAt,
+              unreadCount: isCurrentActive || isMine ? 0 : c.unreadCount + 1,
             };
           }
           return c;
         });
+
+        // Move updated conversation to top like WhatsApp
+        updatedConversations.sort(
+          (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+        );
 
         return {
           messages: {
@@ -346,10 +385,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
         };
       });
 
-      if (isCurrentActive) {
+      if (shouldReloadConversations) {
+        socketService.joinConversation(convId);
+        void get().loadConversations(token);
+      }
+
+      if (isCurrentActive && !isMine) {
         socketService.markAsRead(convId);
       }
     });
+
+    const unsubConvNew =
+      typeof (socketService as any).onConversationNew === 'function'
+        ? (socketService as any).onConversationNew((conv: any) => {
+            if (!conv?.id) return;
+            socketService.joinConversation(conv.id);
+            set((state) => {
+              if (state.conversations.some((c) => c.id === conv.id)) return state;
+              return {
+                conversations: [conv, ...state.conversations],
+              };
+            });
+          })
+        : () => {};
 
     // 2. Subscribe to message:edited
     const unsubEdited = socketService.onMessageEdited((data: any) => {
@@ -630,6 +688,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     socketUnsubscribers = [
       unsubMsg,
+      unsubConvNew,
       unsubEdited,
       unsubDeleted,
       unsubReaction,
@@ -671,12 +730,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const convs = await fetchConversationsApi(token);
       if (convs && convs.length > 0) {
+        convs.forEach((c: any) => {
+          if (c?.id) socketService.joinConversation(c.id);
+        });
+        const currentActive = get().activeConversationId;
+        const keepCurrent = Boolean(
+          currentActive &&
+            !currentActive.startsWith('conv-preview-') &&
+            convs.some((c: any) => c.id === currentActive)
+        );
+        const nextActiveId = keepCurrent ? currentActive! : convs[0].id;
         set({
           conversations: convs,
           isLoadingConversations: false,
-          activeConversationId: convs[0].id,
+          activeConversationId: nextActiveId,
         });
-        await get().setActiveConversationId(convs[0].id, token);
+        if (!keepCurrent) {
+          await get().setActiveConversationId(nextActiveId, token);
+        }
       } else {
         set({ conversations: [], isLoadingConversations: false, activeConversationId: null });
       }
@@ -798,9 +869,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (savedMessage) {
         set((state) => {
           const list = state.messages[activeId] || [];
-          const updated = list.map((m) =>
-            m.id === tempId ? { ...savedMessage, isOutgoing: true } : m
-          );
+          const alreadyMerged = list.some((m) => m.id === savedMessage.id);
+          const updated = alreadyMerged
+            ? list.filter((m) => m.id !== tempId)
+            : list.map((m) => (m.id === tempId ? { ...savedMessage, isOutgoing: true } : m));
           return {
             messages: {
               ...state.messages,
@@ -1435,9 +1507,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       set((state) => {
         const list = state.messages[activeId] || [];
-        const updated = list.map((m) =>
-          m.id === tempId ? { ...savedMessage, isOutgoing: true } : m
-        );
+        const alreadyMerged = list.some((m) => m.id === savedMessage.id);
+        const updated = alreadyMerged
+          ? list.filter((m) => m.id !== tempId)
+          : list.map((m) => (m.id === tempId ? { ...savedMessage, isOutgoing: true } : m));
 
         return {
           isUploadingAttachment: false,

@@ -53,6 +53,7 @@ import { prisma } from '../database/prisma.js';
 
 export interface ServerToClientEvents {
   [SOCKET_EVENTS.RECEIVE_MESSAGE]: (data: any) => void;
+  [SOCKET_EVENTS.CONVERSATION_NEW]: (data: any) => void;
   [SOCKET_EVENTS.USER_ONLINE]: (data: { userId: string }) => void;
   [SOCKET_EVENTS.USER_OFFLINE]: (data: { userId: string; lastSeenAt: string }) => void;
   [SOCKET_EVENTS.TYPING_START]: (data: { conversationId: string; userId: string; userName?: string }) => void;
@@ -194,12 +195,50 @@ export function getIo() {
   return ioInstance;
 }
 
+export function broadcastNewMessage(
+  savedMessage: any,
+  senderId: string,
+  participantUserIds: string[],
+  senderSocket?: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
+): void {
+  const io = getIo();
+  if (!io) return;
+
+  const incomingPayload = {
+    ...savedMessage,
+    isOutgoing: false,
+  };
+
+  const recipientRooms = participantUserIds
+    .filter((pid) => pid !== senderId)
+    .map((pid) => `user:${pid}`);
+
+  if (senderSocket) {
+    // Emit at most once per recipient socket (never echo back to the active sender socket)
+    const targets = [`conv:${savedMessage.conversationId}`, ...recipientRooms];
+    senderSocket.to(targets).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, incomingPayload);
+    // Keep sender's other tabs/devices synced without echoing to senderSocket
+    senderSocket.to(`user:${senderId}`).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, {
+      ...savedMessage,
+      isOutgoing: true,
+    });
+  } else {
+    if (recipientRooms.length > 0) {
+      io.to(recipientRooms).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, incomingPayload);
+    }
+    io.to(`user:${senderId}`).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, {
+      ...savedMessage,
+      isOutgoing: true,
+    });
+  }
+}
+
 export function initSocketServer(
   httpServer: HttpServer
 ): Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> {
   const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
     cors: {
-      origin: env.CORS_ORIGIN,
+      origin: true,
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -274,6 +313,23 @@ export function initSocketServer(
     // Join user's personal channel for direct alerts & notifications
     socket.join(`user:${userId}`);
 
+    // Automatically join all existing conversation rooms for this user so real-time events never miss
+    try {
+      const memberships = await prisma.conversationParticipant.findMany({
+        where: { userId },
+        select: { conversationId: true },
+      });
+      if (Array.isArray(memberships)) {
+        for (const m of memberships) {
+          if (m?.conversationId) {
+            socket.join(`conv:${m.conversationId}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      logger.warn(`Failed to auto-join conversation rooms for ${userId}:`, { message: err?.message });
+    }
+
     // Update presence respecting privacy settings
     const { isNewlyOnline } = await setUserOnline(userId, socket.id);
     if (isNewlyOnline) {
@@ -336,23 +392,11 @@ export function initSocketServer(
     socket.on(SOCKET_EVENTS.SEND_MESSAGE, async ({ conversationId, content, type, replyToId }, callback) => {
       try {
         const savedMessage = await createMessage(userId, conversationId, content, type, replyToId);
-
-        // Broadcast to everyone currently in the conversation room
-        io.to(`conv:${conversationId}`).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, savedMessage);
-
-        // Notify all conversation participants via their personal rooms so sidebar / unread count updates
         const participantUserIds = await getConversationParticipantUserIds(conversationId);
-        participantUserIds.forEach((pid) => {
-          if (pid !== userId) {
-            io.to(`user:${pid}`).emit(SOCKET_EVENTS.RECEIVE_MESSAGE, {
-              ...savedMessage,
-              isOutgoing: false,
-            });
-          }
-        });
+        broadcastNewMessage(savedMessage, userId, participantUserIds, socket);
 
         if (callback) {
-          callback({ success: true, message: savedMessage });
+          callback({ success: true, message: { ...savedMessage, isOutgoing: true } });
         }
       } catch (err: any) {
         logger.error(`Error sending message in conversation ${conversationId}:`, { message: err?.message });

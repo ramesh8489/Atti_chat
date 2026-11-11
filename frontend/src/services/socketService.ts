@@ -5,6 +5,7 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 class SocketService {
   private socket: Socket | null = null;
   private currentToken: string | null = null;
+  private joinedRooms = new Set<string>();
 
   public connect(token: string): Socket {
     if (this.socket && this.socket.connected && this.currentToken === token) {
@@ -28,6 +29,9 @@ class SocketService {
 
     this.socket.on('connect', () => {
       console.log('[SocketService] Connected to real-time gateway:', this.socket?.id);
+      this.joinedRooms.forEach((conversationId) => {
+        this.socket?.emit('room:join', { conversationId });
+      });
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -42,6 +46,7 @@ class SocketService {
   }
 
   public disconnect(): void {
+    this.joinedRooms.clear();
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
@@ -54,12 +59,14 @@ class SocketService {
   }
 
   public joinConversation(conversationId: string): void {
+    this.joinedRooms.add(conversationId);
     if (this.socket && this.socket.connected) {
       this.socket.emit('room:join', { conversationId });
     }
   }
 
   public leaveConversation(conversationId: string): void {
+    this.joinedRooms.delete(conversationId);
     if (this.socket && this.socket.connected) {
       this.socket.emit('room:leave', { conversationId });
     }
@@ -113,6 +120,12 @@ class SocketService {
     if (!this.socket) return () => {};
     this.socket.on('message:receive', callback);
     return () => this.socket?.off('message:receive', callback);
+  }
+
+  public onConversationNew(callback: (conversation: any) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('conversation:new', callback);
+    return () => this.socket?.off('conversation:new', callback);
   }
 
   public onUserOnline(callback: (data: { userId: string }) => void): () => void {
