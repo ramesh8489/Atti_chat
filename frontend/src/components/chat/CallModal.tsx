@@ -85,7 +85,7 @@ export const CallModal: React.FC = () => {
         <div className="relative w-full max-w-lg bg-gray-900 border border-gray-800 rounded-3xl p-8 text-white shadow-2xl flex flex-col items-center text-center">
           <div className="flex items-center gap-2 px-3 py-1 bg-gray-800 text-brand-400 text-xs font-semibold rounded-full border border-gray-700 mb-6">
             <Radio className="w-3.5 h-3.5 animate-pulse text-brand-400" />
-            <span>WebRTC {previewCallType === 'VIDEO' ? 'Video' : 'Voice'} Call Preview</span>
+            <span>{previewCallType === 'VIDEO' ? 'Video' : 'Voice'} Call</span>
           </div>
 
           <div className="relative my-4">
@@ -95,7 +95,7 @@ export const CallModal: React.FC = () => {
           </div>
 
           <h3 className="text-xl font-bold mt-2">{calleeName}</h3>
-          <p className="text-xs text-gray-400 mt-1">Calling... (Preview Mode)</p>
+          <p className="text-xs text-gray-400 mt-1">Calling...</p>
 
           <div className="flex items-center gap-4 mt-6">
             <button

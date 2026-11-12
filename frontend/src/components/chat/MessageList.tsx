@@ -258,7 +258,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+    <div className="flex-1 overflow-y-auto px-3 py-4 sm:p-6 space-y-3.5 bg-[#FAFBFD] dark:bg-gray-900">
       {messages.length === 0 && (
         <div className="text-center py-12 text-xs text-gray-400">
           No messages in this conversation yet. Send the first message below!
@@ -301,7 +301,7 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
               )}
 
               {/* Message Bubble + Context Menu Container */}
-              <div className="relative max-w-[85%] sm:max-w-[70%]">
+              <div className="relative max-w-[82%] sm:max-w-[70%]">
                 {/* Floating Action Bar / Context Menu */}
                 {!message.isDeleted && (
                   <div
@@ -438,12 +438,12 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
 
                 {/* Message Bubble */}
                 <div
-                  className={`px-4 py-2.5 rounded-2xl shadow-sm text-sm ${
+                  className={`px-4 py-2.5 rounded-2xl shadow-xs text-sm ${
                     message.isDeleted
                       ? 'bg-gray-100 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500 italic border border-dashed border-gray-300 dark:border-gray-700'
                       : isOutgoing
-                      ? 'bg-brand-500 text-white rounded-tr-none'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700/80 rounded-tl-none'
+                      ? 'bg-brand-500 text-white rounded-br-sm shadow-sm shadow-brand-500/20'
+                      : 'bg-[#EEF0F8] dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm'
                   }`}
                 >
                   {/* Forwarded Header */}

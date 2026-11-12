@@ -87,7 +87,7 @@ export const OtpVerificationCard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-800 transition-colors">
+    <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-xl shadow-indigo-500/10 border border-indigo-100/80 dark:border-gray-800 transition-colors">
       <button
         onClick={() => setStep('PHONE_ENTRY')}
         className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 mb-4 transition"
@@ -107,12 +107,12 @@ export const OtpVerificationCard: React.FC = () => {
         </p>
       </div>
 
-      <div className="mb-5 p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-start gap-2.5 text-xs text-blue-800 dark:text-blue-300">
+      <div className="mb-5 p-3.5 rounded-xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-900/60 flex items-start gap-2.5 text-xs text-brand-800 dark:text-brand-300">
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold">Firebase SMS Verification</p>
-          <p className="text-[11px] mt-0.5 text-blue-700 dark:text-blue-400">
-            Enter the 6-digit code sent via SMS. If you are using a configured Firebase test number, enter your test PIN (e.g. 123456).
+          <p className="font-semibold">SMS Verification</p>
+          <p className="text-[11px] mt-0.5 text-brand-700 dark:text-brand-400">
+            Enter the 6-digit verification code sent to your mobile number.
           </p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export const OtpVerificationCard: React.FC = () => {
       )}
 
       {/* 6-Digit PIN Inputs */}
-      <div className="flex justify-between gap-2 my-6" onPaste={handlePaste}>
+      <div className="flex justify-between gap-1.5 sm:gap-2 my-6" onPaste={handlePaste}>
         {code.map((digit, idx) => (
           <input
             key={idx}
@@ -136,7 +136,7 @@ export const OtpVerificationCard: React.FC = () => {
             value={digit}
             onChange={(e) => handleDigitChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
-            className="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
+            className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"
             autoFocus={idx === 0}
           />
         ))}

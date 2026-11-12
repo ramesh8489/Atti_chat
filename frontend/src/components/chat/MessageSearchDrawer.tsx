@@ -81,7 +81,7 @@ export const MessageSearchDrawer: React.FC = () => {
   if (!isSearchDrawerOpen && !isStarredViewOpen) return null;
 
   return (
-    <div className="absolute top-0 right-0 bottom-0 w-80 sm:w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-200">
+    <div className="absolute top-0 right-0 bottom-0 w-full sm:w-96 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-200">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
         <div className="flex items-center gap-2">

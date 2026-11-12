@@ -12,7 +12,6 @@ import {
   PrivacySetting,
   BlockedUser,
 } from '../types';
-import { PREVIEW_CONVERSATIONS, PREVIEW_MESSAGES } from '../data/previewData';
 import { socketService } from '../services/socketService';
 import {
   fetchConversationsApi,
@@ -178,9 +177,9 @@ let socketUnsubscribers: Array<() => void> = [];
 let lastRealtimeUserId: string | null = null;
 
 export const useChatStore = create<ChatState>((set, get) => ({
-  conversations: PREVIEW_CONVERSATIONS,
-  activeConversationId: 'conv-preview-1',
-  messages: PREVIEW_MESSAGES,
+  conversations: [],
+  activeConversationId: null,
+  messages: {},
   searchQuery: '',
   activeTab: 'all',
   isMobileChatOpen: false,

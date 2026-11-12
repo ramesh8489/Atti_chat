@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Phone, LogOut, CheckCircle, Database, Radio, Server } from 'lucide-react';
+import { X, User, Phone, LogOut, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 interface ProfileDrawerProps {
@@ -67,35 +67,8 @@ export const ProfileDrawer: React.FC<ProfileDrawerProps> = ({ isOpen, onClose })
               <div>
                 <p className="text-[10px] uppercase font-bold text-gray-400">Account Status</p>
                 <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                  <CheckCircle className="w-3.5 h-3.5" /> Active Session
+                  <CheckCircle className="w-3.5 h-3.5" /> Online
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Infrastructure Health Status */}
-          <div className="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-800">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2.5">
-              Infrastructure Status
-            </h4>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <span className="flex items-center gap-2">
-                  <Server className="w-3.5 h-3.5 text-brand-500" /> Express API
-                </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ready (:5000)</span>
-              </div>
-              <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <span className="flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-blue-500" /> PostgreSQL & Prisma
-                </span>
-                <span className="text-blue-600 dark:text-blue-400 font-medium">Schema V1</span>
-              </div>
-              <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <span className="flex items-center gap-2">
-                  <Radio className="w-3.5 h-3.5 text-red-500" /> Redis Cluster / Memory
-                </span>
-                <span className="text-amber-600 dark:text-amber-400 font-medium">Local Fallback</span>
               </div>
             </div>
           </div>

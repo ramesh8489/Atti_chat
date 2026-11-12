@@ -40,8 +40,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
       }}
       className={`w-full p-3 flex items-center gap-3 rounded-2xl cursor-pointer transition-all ${
         isActive
-          ? 'bg-brand-500/10 dark:bg-brand-500/20 border-l-4 border-brand-500 pl-2.5'
-          : 'hover:bg-gray-100 dark:hover:bg-gray-800/60'
+          ? 'bg-[#F4F5FF] dark:bg-brand-950/40 shadow-sm ring-1 ring-brand-200/80 dark:ring-brand-800/50'
+          : 'hover:bg-[#F7F8FE] dark:hover:bg-gray-800/60'
       }`}
     >
       {/* Avatar Container */}
@@ -50,17 +50,17 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           <img
             src={conversation.avatarUrl}
             alt={conversation.title}
-            className="w-12 h-12 rounded-2xl object-cover ring-2 ring-gray-200 dark:ring-gray-700"
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-indigo-100 dark:ring-gray-700"
           />
         ) : (
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center font-bold text-base shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center font-bold text-base shadow-sm">
             {isGroup ? <Users className="w-5 h-5" /> : conversation.title.charAt(0).toUpperCase()}
           </div>
         )}
 
         {/* Online Presence Indicator */}
         {conversation.isOnline && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
+          <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
         )}
       </div>
 

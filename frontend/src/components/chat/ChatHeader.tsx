@@ -5,13 +5,13 @@ import {
   Video,
   ArrowLeft,
   MoreVertical,
-  Shield,
   Search,
   Star,
   BellOff,
   Bell,
   UserX,
   Settings,
+  Info,
 } from 'lucide-react';
 import { useChatStore } from '../../store/chatStore';
 import { useCallStore } from '../../store/callStore';
@@ -19,9 +19,15 @@ import { useAuthStore } from '../../store/authStore';
 
 interface ChatHeaderProps {
   conversation: Conversation;
+  onToggleInfo?: () => void;
+  isInfoOpen?: boolean;
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({
+  conversation,
+  onToggleInfo,
+  isInfoOpen = false,
+}) => {
   const {
     setIsMobileChatOpen,
     openCallModal,
@@ -63,37 +69,37 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
   };
 
   return (
-    <div className="h-16 px-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md flex items-center justify-between transition-colors z-10">
+    <div className="h-16 px-3 sm:px-5 border-b border-indigo-100/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-between transition-colors z-10 flex-shrink-0">
       {/* Left: Mobile back button & User Details */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
         <button
           onClick={() => setIsMobileChatOpen(false)}
-          className="md:hidden p-2 -ml-2 rounded-lg text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+          className="md:hidden p-2 -ml-1 rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 flex-shrink-0"
           aria-label="Back to conversations"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           {conversation.avatarUrl ? (
             <img
               src={conversation.avatarUrl}
               alt={conversation.title}
-              className="w-10 h-10 rounded-xl object-cover ring-2 ring-gray-100 dark:ring-gray-700"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-100 dark:ring-gray-700"
             />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center font-bold text-sm shadow-sm">
               {conversation.title.charAt(0).toUpperCase()}
             </div>
           )}
           {conversation.isOnline && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <h2 className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[180px] sm:max-w-xs">
+            <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate max-w-[130px] sm:max-w-xs">
               {conversation.title}
             </h2>
             {isMuted && (
@@ -101,22 +107,22 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
                 <BellOff className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
               </span>
             )}
-            {conversation.isPreview && (
-              <span className="text-[9px] uppercase px-1.5 py-0.2 bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 font-semibold rounded">
-                Preview
-              </span>
-            )}
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+            {!isGroup && conversation.isOnline && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+            )}
+            <span>{subtitle}</span>
+          </p>
         </div>
       </div>
 
       {/* Right: Search, Starred, Call Actions & Options */}
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-0.5 sm:gap-1.5 flex-shrink-0">
         {/* Search in chat */}
         <button
           onClick={() => setIsSearchDrawerOpen(true)}
-          className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
+          className="p-2 sm:p-2.5 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-[#F3F4FC] dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
           title="Search messages"
         >
           <Search className="w-4 h-4" />
@@ -125,7 +131,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
         {/* Starred messages */}
         <button
           onClick={() => setIsStarredViewOpen(true)}
-          className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-amber-500 dark:hover:text-amber-400 transition"
+          className="hidden sm:inline-flex p-2.5 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-[#F3F4FC] dark:hover:bg-gray-800 hover:text-amber-500 dark:hover:text-amber-400 transition"
           title="View starred messages"
         >
           <Star className="w-4 h-4" />
@@ -136,8 +142,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
         {/* Audio Call */}
         <button
           onClick={() => handleCall('AUDIO')}
-          className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
-          title="Start Audio Call (WebRTC)"
+          className="p-2 sm:p-2.5 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-[#F3F4FC] dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
+          title="Voice call"
         >
           <Phone className="w-4 h-4" />
         </button>
@@ -145,18 +151,28 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
         {/* Video Call */}
         <button
           onClick={() => handleCall('VIDEO')}
-          className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
-          title="Start Video Call (WebRTC)"
+          className="p-2 sm:p-2.5 rounded-xl text-gray-500 dark:text-gray-300 hover:bg-[#F3F4FC] dark:hover:bg-gray-800 hover:text-brand-600 dark:hover:text-brand-400 transition"
+          title="Video call"
         >
           <Video className="w-4 h-4" />
         </button>
 
-        <div className="h-4 w-px bg-gray-200 dark:border-gray-800 mx-1 hidden sm:block" />
-
-        <div className="hidden lg:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md">
-          <Shield className="w-3 h-3 text-emerald-500" />
-          <span>E2E & STUN Prepared</span>
-        </div>
+        {/* Conversation Details Toggle */}
+        {onToggleInfo && (
+          <button
+            type="button"
+            onClick={onToggleInfo}
+            className={`p-2 sm:p-2.5 rounded-xl transition ${
+              isInfoOpen
+                ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/60 dark:text-brand-400'
+                : 'text-gray-500 dark:text-gray-300 hover:bg-[#F3F4FC] dark:hover:bg-gray-800 hover:text-brand-600'
+            }`}
+            title="Chat details & media"
+            aria-label="Chat details"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        )}
 
         <div className="relative">
           <button

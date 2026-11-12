@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Header } from '../components/layout/Header';
+import { NavRail } from '../components/layout/NavRail';
 import { ProfileDrawer } from '../components/layout/ProfileDrawer';
 import { Sidebar } from '../components/chat/Sidebar';
 import { ChatWindow } from '../components/chat/ChatWindow';
@@ -14,15 +15,18 @@ export const ChatPage: React.FC = () => {
   const { isMobileChatOpen } = useChatStore();
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
-      {/* Top Header */}
-      <Header onOpenProfile={() => setIsProfileOpen(true)} />
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-[#EEF0FB] dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
+      {/* Compact Mobile Header (shown on chat list screen) */}
+      {!isMobileChatOpen && <Header onOpenProfile={() => setIsProfileOpen(true)} />}
 
-      {/* Main Responsive Chat Layout */}
-      <div className="flex-1 flex overflow-hidden relative">
+      {/* Main Responsive Chat Workspace */}
+      <div className="flex-1 flex overflow-hidden relative md:p-3 md:gap-3">
+        {/* Desktop/Tablet Navigation Rail */}
+        <NavRail onOpenProfile={() => setIsProfileOpen(true)} />
+
         {/* Sidebar: Visible on desktop; or on mobile when chat is closed */}
         <div
-          className={`h-full ${
+          className={`h-full min-w-0 ${
             isMobileChatOpen ? 'hidden md:flex' : 'flex w-full md:w-auto'
           }`}
         >
@@ -31,7 +35,7 @@ export const ChatPage: React.FC = () => {
 
         {/* Chat Window: Visible on desktop; or on mobile when chat is open */}
         <div
-          className={`h-full flex-1 ${
+          className={`h-full flex-1 min-w-0 ${
             isMobileChatOpen ? 'flex w-full' : 'hidden md:flex'
           }`}
         >
@@ -39,22 +43,14 @@ export const ChatPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Profile Menu Drawer */}
       <ProfileDrawer
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
       />
 
-      {/* New Conversation / Group Modal */}
       <NewChatModal />
-
-      {/* WebRTC Call Modal Preview */}
       <CallModal />
-
-      {/* Phase 7 Notification Center Drawer */}
       <NotificationCenterDrawer />
-
-      {/* Phase 7 Settings Modal */}
       <SettingsModal />
     </div>
   );

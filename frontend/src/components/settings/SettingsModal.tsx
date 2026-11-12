@@ -82,7 +82,7 @@ export const SettingsModal: React.FC = () => {
       aria-label="Settings Modal"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in"
     >
-      <div className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90dvh]">
         {/* Header */}
         <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <div>

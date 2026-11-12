@@ -44,7 +44,7 @@ export const PinAuthCard: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-800 transition-colors">
+    <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-xl shadow-indigo-500/10 border border-indigo-100/80 dark:border-gray-800 transition-colors">
       <button
         type="button"
         onClick={() => {
@@ -158,3 +158,4 @@ export const PinAuthCard: React.FC = () => {
     </div>
   );
 };
+

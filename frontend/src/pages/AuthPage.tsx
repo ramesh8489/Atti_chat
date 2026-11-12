@@ -4,28 +4,28 @@ import { PhoneLoginCard } from '../components/auth/PhoneLoginCard';
 import { PinAuthCard } from '../components/auth/PinAuthCard';
 import { OtpVerificationCard } from '../components/auth/OtpVerificationCard';
 import { ProfileOnboardingCard } from '../components/auth/ProfileOnboardingCard';
-import { MessageSquare, ShieldCheck, Lock } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const { step } = useAuthStore();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 flex flex-col justify-center items-center p-4 transition-colors relative overflow-hidden">
-      {/* Background Glows */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-brand-500/10 dark:bg-brand-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-[100dvh] bg-gradient-to-br from-[#F4F5FF] via-white to-[#ECEEFE] dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex flex-col justify-center items-center p-4 sm:p-6 transition-colors relative overflow-hidden">
+      {/* Subtle Ambient Glows */}
+      <div className="absolute top-1/4 -left-32 w-80 sm:w-96 h-80 sm:h-96 bg-brand-500/15 dark:bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-80 sm:w-96 h-80 sm:h-96 bg-purple-400/15 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Brand Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
-          <MessageSquare className="w-7 h-7" />
+      <div className="flex items-center gap-3 mb-6 sm:mb-8 z-10">
+        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+          <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7" />
         </div>
         <div>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
             PingUp
           </h1>
-          <p className="text-xs text-brand-600 dark:text-brand-400 font-semibold tracking-wide uppercase">
-            Instant Phone + PIN Messaging
+          <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">
+            Fast, simple messaging
           </p>
         </div>
       </div>
@@ -36,19 +36,6 @@ export const AuthPage: React.FC = () => {
         {step === 'PIN_AUTH' && <PinAuthCard />}
         {step === 'OTP_VERIFICATION' && <OtpVerificationCard />}
         {step === 'PROFILE_ONBOARDING' && <ProfileOnboardingCard />}
-      </div>
-
-      {/* Feature Badges */}
-      <div className="mt-10 flex flex-wrap justify-center gap-4 text-xs text-gray-400 dark:text-gray-500 z-10">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" /> Phone + PIN Auth
-        </span>
-        <span>•</span>
-        <span className="flex items-center gap-1.5">
-          <Lock className="w-3.5 h-3.5 text-blue-500" /> Server-Verified Tokens
-        </span>
-        <span>•</span>
-        <span>Zero Destructive Operations</span>
       </div>
     </div>
   );

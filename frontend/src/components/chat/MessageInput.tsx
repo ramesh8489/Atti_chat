@@ -205,7 +205,7 @@ export const MessageInput: React.FC = () => {
   const isVideo = selectedFile?.type.startsWith('video/');
 
   return (
-    <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md relative">
+    <div className="px-3 py-2.5 sm:px-5 sm:py-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-indigo-100/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md relative flex-shrink-0">
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -373,7 +373,7 @@ export const MessageInput: React.FC = () => {
       )}
 
       {/* Main Input Control Bar */}
-      <div className="flex items-end gap-2 bg-gray-50 dark:bg-gray-800/80 rounded-2xl p-2 border border-gray-200 dark:border-gray-700/80 focus-within:ring-2 focus-within:ring-brand-500 transition">
+      <div className="flex items-end gap-1.5 sm:gap-2 bg-[#F5F6FC] dark:bg-gray-800/90 rounded-2xl sm:rounded-full px-2.5 py-1.5 border border-indigo-100 dark:border-gray-700/80 focus-within:ring-2 focus-within:ring-brand-500 transition shadow-xs">
         {/* Attachment button (disabled during edit) */}
         {!editingMessage && (
           <button
@@ -433,7 +433,7 @@ export const MessageInput: React.FC = () => {
             type="button"
             disabled={isUploadingAttachment}
             onClick={handleSend}
-            className="p-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-md shadow-brand-500/25 transition disabled:opacity-50"
+            className="p-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-full shadow-md shadow-brand-500/25 transition disabled:opacity-50"
             title="Send Message"
             aria-label="Send Message"
           >
